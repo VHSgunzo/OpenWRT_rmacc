@@ -1,0 +1,244 @@
+#!/bin/bash /etc/rc.common
+start() {
+read -p "Enter UCI Wi-Fi interface name ( $(uci show|grep -w "device="|grep -w 'wireless'|cut -d"'" -f2|awk '{printf "%s ",$0}')) > " uci_iface
+iface=$(uci show|grep -w "wireless.$(uci show|grep -w "device='$uci_iface'"|cut -d'.' -f2).ifname"|cut -d"'" -f2)
+per_mac=$(macchanger -s $iface | grep Permanent | awk '{print$3}' | awk '{print toupper($0)}')
+old_mac=$(ifconfig $iface | grep "HWaddr" | awk '{print$5}')
+   if [ "$per_mac" == "$old_mac" ]; then
+      wifi down
+      cat /etc/config/wireless | tr -d "'" > /etc/config/wireless.new && mv /etc/config/wireless.new /etc/config/wireless
+      sed -i '/option macaddr/ d' /etc/config/wireless
+        for (( m=1; m <= 2000; m++ ))
+        do
+            sed_str=$(sed "$m"p -n /etc/config/wireless | grep -o "option device $uci_iface")
+            if [ "$sed_str" == "option device $uci_iface" ]; then
+                bit0_mac=$(dd if=/dev/random bs=1 count=3 2>/dev/null | hexdump -C | head -1 | cut -d' ' -f2- | awk '{ print ""$1":"$2":"$3 }')
+                bit1_mac=$(dd if=/dev/random bs=1 count=3 2>/dev/null | hexdump -C | head -1 | cut -d' ' -f2- | awk '{ print ""$1":"$2":"$3 }')
+                new_mac=$bit0_mac:$bit1_mac
+                n=$(($m+1))
+                sed_strr=$(sed "$n"p -n /etc/config/wireless | grep -o "option macaddr")
+                    if [ "$sed_strr" == "option macaddr" ]; then
+                        mac_str="$n"c
+                        sed -i "$mac_str\        option macaddr $new_mac" /etc/config/wireless
+                        continue
+                    else
+                        sed -i "/option device $uci_iface/a'        option macaddr $new_mac'" /etc/config/wireless
+                        cat /etc/config/wireless | tr -d "'" > /etc/config/wireless.new && mv /etc/config/wireless.new /etc/config/wireless
+                        continue
+                    fi
+            fi
+        done
+      wifi up
+      sleep 5
+      while true; do
+        cur_mac=$(ifconfig $iface | grep "HWaddr" | awk '{print$5}')
+         if [ "$per_mac" == "$cur_mac" ]; then
+            wifi down
+            echo " "
+            echo "!!!MAC ADDRESS RESET TO DEFAULT!!!"
+            echo "Yet another attempt..."
+        for (( m=1; m <= 2000; m++ ))
+        do
+            sed_str=$(sed "$m"p -n /etc/config/wireless | grep -o "option device $uci_iface")
+            if [ "$sed_str" == "option device $uci_iface" ]; then
+                bit0_mac=$(dd if=/dev/random bs=1 count=3 2>/dev/null | hexdump -C | head -1 | cut -d' ' -f2- | awk '{ print ""$1":"$2":"$3 }')
+                bit1_mac=$(dd if=/dev/random bs=1 count=3 2>/dev/null | hexdump -C | head -1 | cut -d' ' -f2- | awk '{ print ""$1":"$2":"$3 }')
+                new_mac=$bit0_mac:$bit1_mac
+                n=$(($m+1))
+                sed_strr=$(sed "$n"p -n /etc/config/wireless | grep -o "option macaddr")
+                    if [ "$sed_strr" == "option macaddr" ]; then
+                        mac_str="$n"c
+                        sed -i "$mac_str\        option macaddr $new_mac" /etc/config/wireless
+                        continue
+                    else
+                        sed -i "/option device $uci_iface/a'        option macaddr $new_mac'" /etc/config/wireless
+                        cat /etc/config/wireless | tr -d "'" > /etc/config/wireless.new && mv /etc/config/wireless.new /etc/config/wireless
+                        continue
+                    fi
+            fi
+        done
+            wifi up
+            sleep 5
+        else
+            echo " "
+            echo "mac address for $iface successfully changed" | awk '{print toupper($0)}'
+            echo " "
+            echo "Current MAC:   $cur_mac"
+            echo "Permanent MAC: $per_mac"
+            echo "OLD MAC:       $old_mac"
+            sleep 25
+            while true; do
+             iface_stat=$(ip a | grep -w "$iface" | grep -o DOWN)
+                if [ "$iface_stat" == DOWN ]; then
+                    echo " "
+                    echo "OpenWRT WI-FI Freezing(("
+                    wifi down
+                    wifi up
+                    echo "WI-FI RELOAD..."
+                else
+                    echo " "
+                    echo "WI-FI IS FINE"
+                    exit 0
+                fi;
+            sleep 30; done
+         fi; done
+   else
+      echo " "
+      echo "MAC ADDRESS ALREADY CHANGED"
+      exit 0
+   fi
+}
+
+stop() {
+read -p "Enter UCI Wi-Fi interface name ( $(uci show|grep -w "device="|grep -w 'wireless'|cut -d"'" -f2|awk '{printf "%s ",$0}')) > " uci_iface
+iface=$(uci show|grep -w "wireless.$(uci show|grep -w "device='$uci_iface'"|cut -d'.' -f2).ifname"|cut -d"'" -f2)
+per_mac=$(macchanger -s $iface | grep Permanent | awk '{print$3}' | awk '{print toupper($0)}')
+old_mac=$(ifconfig $iface | grep "HWaddr" | awk '{print$5}')
+    if [ "$per_mac" == "$old_mac" ]; then
+        echo " "
+        echo "MAC ADDRESS ALREADY RESET TO DEFAULT"
+    else
+        echo " "
+        echo "Stopping MAC changer script..."
+        wifi down
+        for (( m=1; m <= 2000; m++ ))
+        do
+            sed_str=$(sed "$m"p -n /etc/config/wireless | grep -o "option device $uci_iface")
+                if [ "$sed_str" == "option device $uci_iface" ]; then
+                    n=$(($m+1))
+                    sed_strr=$(sed "$n"p -n /etc/config/wireless | grep -o "option macaddr")
+                        if [ "$sed_strr" == "option macaddr" ]; then
+                            mac_str="$n"c
+                            sed -i "$mac_str\        option macaddr $per_mac" /etc/config/wireless
+                            continue
+                        else
+                            sed -i "/option device $uci_iface/a'        option macaddr $per_mac'" /etc/config/wireless
+                            cat /etc/config/wireless | tr -d "'" > /etc/config/wireless.new && mv /etc/config/wireless.new /etc/config/wireless
+                            continue
+                        fi
+                fi
+        done       
+        wifi up
+        sleep 30
+        while true; do
+            iface_stat=$(ip a | grep -w "$iface" | grep -o DOWN)
+                if [ "$iface_stat" == DOWN ]; then
+                    echo " "
+                    echo "OpenWRT WI-FI Freezing(("
+                    wifi down
+                    wifi up
+                    echo "WI-FI RELOAD..."
+                else
+                    echo " "
+                    echo "WI-FI IS FINE"
+                    exit 0
+                fi;
+            sleep 30; done
+    fi
+}
+
+restart() {
+read -p "Enter UCI Wi-Fi interface name ( $(uci show|grep -w "device="|grep -w 'wireless'|cut -d"'" -f2|awk '{printf "%s ",$0}')) > " uci_iface
+iface=$(uci show|grep -w "wireless.$(uci show|grep -w "device='$uci_iface'"|cut -d'.' -f2).ifname"|cut -d"'" -f2)
+per_mac=$(macchanger -s $iface | grep Permanent | awk '{print$3}' | awk '{print toupper($0)}')
+old_mac=$(ifconfig $iface | grep "HWaddr" | awk '{print$5}')
+   if [ $? -eq 0 ]; then
+      wifi down
+        for (( m=1; m <= 2000; m++ ))
+        do
+            sed_str=$(sed "$m"p -n /etc/config/wireless | grep -o "option device $uci_iface")
+            if [ "$sed_str" == "option device $uci_iface" ]; then
+                bit0_mac=$(dd if=/dev/random bs=1 count=3 2>/dev/null | hexdump -C | head -1 | cut -d' ' -f2- | awk '{ print ""$1":"$2":"$3 }')
+                bit1_mac=$(dd if=/dev/random bs=1 count=3 2>/dev/null | hexdump -C | head -1 | cut -d' ' -f2- | awk '{ print ""$1":"$2":"$3 }')
+                new_mac=$bit0_mac:$bit1_mac
+                n=$(($m+1))
+                sed_strr=$(sed "$n"p -n /etc/config/wireless | grep -o "option macaddr")
+                    if [ "$sed_strr" == "option macaddr" ]; then
+                        mac_str="$n"c
+                        sed -i "$mac_str\        option macaddr $new_mac" /etc/config/wireless
+                        continue
+                    else
+                        sed -i "/option device $uci_iface/a'        option macaddr $new_mac'" /etc/config/wireless
+                        cat /etc/config/wireless | tr -d "'" > /etc/config/wireless.new && mv /etc/config/wireless.new /etc/config/wireless
+                        continue
+                    fi
+            fi
+        done
+      wifi up
+      sleep 5
+      while true; do
+        cur_mac=$(ifconfig $iface | grep "HWaddr" | awk '{print$5}')
+         if [ "$per_mac" == "$cur_mac" ]; then
+            wifi down
+            echo " "
+            echo "!!!MAC ADDRESS RESET TO DEFAULT!!!"
+            echo "Yet another attempt..."
+        for (( m=1; m <= 2000; m++ ))
+        do
+            sed_str=$(sed "$m"p -n /etc/config/wireless | grep -o "option device $uci_iface")
+            if [ "$sed_str" == "option device $uci_iface" ]; then
+                bit0_mac=$(dd if=/dev/random bs=1 count=3 2>/dev/null | hexdump -C | head -1 | cut -d' ' -f2- | awk '{ print ""$1":"$2":"$3 }')
+                bit1_mac=$(dd if=/dev/random bs=1 count=3 2>/dev/null | hexdump -C | head -1 | cut -d' ' -f2- | awk '{ print ""$1":"$2":"$3 }')
+                new_mac=$bit0_mac:$bit1_mac
+                n=$(($m+1))
+                sed_strr=$(sed "$n"p -n /etc/config/wireless | grep -o "option macaddr")
+                    if [ "$sed_strr" == "option macaddr" ]; then
+                        mac_str="$n"c
+                        sed -i "$mac_str\        option macaddr $new_mac" /etc/config/wireless
+                        continue
+                    else
+                        sed -i "/option device $uci_iface/a'        option macaddr $new_mac'" /etc/config/wireless
+                        cat /etc/config/wireless | tr -d "'" > /etc/config/wireless.new && mv /etc/config/wireless.new /etc/config/wireless
+                        continue
+                    fi
+            fi
+        done
+            wifi up
+            sleep 5
+         else
+            echo " "
+            echo "mac address for $iface successfully changed" | awk '{print toupper($0)}'
+            echo " "
+            echo "Current MAC:   $cur_mac"
+            echo "Permanent MAC: $per_mac"
+            echo "OLD MAC:       $old_mac"
+            sleep 25
+            while true; do
+            iface_stat=$(ip a | grep -w "$iface" | grep -o DOWN)
+                if [ "$iface_stat" == DOWN ]; then
+                    echo " "
+                    echo "OpenWRT WI-FI Freezing(("
+                    wifi down
+                    wifi up
+                    echo "WI-FI RELOAD..."
+                else
+                    echo " "
+                    echo "WI-FI IS FINE"
+                    exit 0
+                fi;
+            sleep 30; done
+         fi; done
+   else
+      echo " "
+      echo "MAC ADDRESS NOT CHANGED"
+      exit 0
+   fi
+}
+
+reload() {
+read -p "Enter UCI Wi-Fi interface name ( $(uci show|grep -w "device="|grep -w 'wireless'|cut -d"'" -f2|awk '{printf "%s ",$0}')) > " uci_iface
+iface=$(uci show|grep -w "wireless.$(uci show|grep -w "device='$uci_iface'"|cut -d'.' -f2).ifname"|cut -d"'" -f2)
+    while true; do
+        iface_stat=$(ip a | grep -w "$iface" | grep -o DOWN)
+        if [ "$iface_stat" == DOWN ]; then
+            echo " "
+            wifi down
+            wifi up
+            echo "WI-FI RELOAD..."
+        else
+            echo " "
+            echo "WI-FI IS FINE"
+            exit 0
+        fi;
+    sleep 30; done
+}

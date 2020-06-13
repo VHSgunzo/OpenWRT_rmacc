@@ -1,0 +1,19 @@
+
+config wifi-device radio0
+	option type mac80211
+	option channel 11
+	option hwmode 11g
+	option path pci0000:00/0000:00:0b.0/usb1/1-1/1-1:1.0
+	option htmode HT20
+	option disabled 0
+
+config wifi-iface wifinet0
+	option key 12345678
+	option ssid Spot
+	option device radio0
+	option mode sta
+	option bssid XX:XX:XX:XX:XX:XX
+	option network wlan0
+	option encryption psk2
+	option ifname wlan0
+

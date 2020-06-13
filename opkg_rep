@@ -1,0 +1,54 @@
+openmptcprouter
+
+/etc/opkg.conf
+
+dest root /
+dest ram /tmp
+lists_dir ext /var/opkg-lists
+option overlay_root /overlay
+option check_signature
+
+/etc/opkg/customfeeds.conf
+
+src/gz openwrt_luci http://downloads.openwrt.org/snapshots/packages/x86_64/luci
+src/gz openwrt_packages http://downloads.openwrt.org/snapshots/packages/x86_64/packages
+src/gz openwrt_base http://downloads.openwrt.org/snapshots/packages/x86_64/base
+src/gz openwrt_routing http://downloads.openwrt.org/snapshots/packages/x86_64/routing
+src/gz openwrt_telephony http://downloads.openwrt.org/snapshots/packages/x86_64/telephony
+
+/etc/opkg/distfeeds.conf
+
+src/gz openmptcprouter_core http://openmptcprouter.com:80/release/4.19/targets/x86/64/packages
+src/gz openmptcprouter_base http://openmptcprouter.com:80/release/4.19/packages/x86_64/base
+src/gz openmptcprouter_luci http://openmptcprouter.com:80/release/4.19/packages/x86_64/luci
+src/gz openmptcprouter_openmptcprouter http://openmptcprouter.com:80/release/4.19/packages/x86_64/openmptcprouter
+src/gz openmptcprouter_packages http://openmptcprouter.com:80/release/4.19/packages/x86_64/packages
+
+ -------------------------------------------------------------------------------------------------------
+
+ 
+ openwrt
+ 
+ opkg.conf
+
+dest root /
+dest ram /tmp
+lists_dir ext /var/opkg-lists
+option overlay_root /overlay
+option check_signature
+
+opkg/customfeeds.conf
+
+# add your custom package feeds here
+#
+# src/gz example_feed_name http://www.example.com/path/to/files
+
+opkg/distfeeds.conf
+
+src/gz openwrt_core http://downloads.openwrt.org/releases/19.07.2/targets/x86/64/packages
+src/gz openwrt_base http://downloads.openwrt.org/releases/19.07.2/packages/x86_64/base
+src/gz openwrt_luci http://downloads.openwrt.org/releases/19.07.2/packages/x86_64/luci
+src/gz openwrt_packages http://downloads.openwrt.org/releases/19.07.2/packages/x86_64/packages
+src/gz openwrt_routing http://downloads.openwrt.org/releases/19.07.2/packages/x86_64/routing
+src/gz openwrt_telephony http://downloads.openwrt.org/releases/19.07.2/packages/x86_64/telephony
+
