@@ -17,9 +17,9 @@ git clone https://github.com/VHSgunzo/OpenWRT_rmacc.git
 ```
 cd OpenWRT_rmacc
 scp rmacc root@192.168.1.1:/bin/rmacc
-chmod +x /bin/rmacc
 scp soft root@192.168.1.1:~/soft
 ssh root@192.168.1.1
+chmod +x /bin/rmacc
 opkg update
 opkg install $(cat soft)
 rm -rf /etc/config/wireless
